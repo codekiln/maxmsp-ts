@@ -7,13 +7,14 @@ settings:
 importers:
 
   .:
+    dependencies:
+      chokidar:
+        specifier: ^4.0.1
+        version: 4.0.1
     devDependencies:
       '@types/node':
         specifier: ^22.7.4
         version: 22.7.4
-      chokidar:
-        specifier: ^4.0.1
-        version: 4.0.1
       typescript:
         specifier: ^5.6.2
         version: 5.6.2

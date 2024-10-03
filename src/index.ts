@@ -310,14 +310,16 @@ async function build() {
 
 // Dev command logic with file watching
 async function dev() {
-  console.log("Starting watch mode...");
-
   const srcDir = path.join(process.cwd(), "src");
 
+  console.log("Starting watch mode in " + srcDir);
+
   // Watch for changes in .ts and .json files within src directory
-  const watcher = chokidar.watch([`${srcDir}/**/*.ts`, `${srcDir}/**/*.json`], {
-    ignored: /(^|[\/\\])\../,
+  const watcher = chokidar.watch(srcDir, {
+    ignored: /(^|[\/\\])\../, // Ignore dotfiles
     persistent: true,
+    usePolling: true, // Enable polling
+    interval: 100, // Polling interval in milliseconds
   });
 
   watcher.on("ready", () => {
@@ -331,12 +333,37 @@ async function dev() {
     console.log(`File ${filePath} has been changed.`);
 
     // Run build on change
-    build().catch((err) => console.error("Build failed:", err.message));
+    build()
+      .then(() => {
+        console.log(`Build completed successfully after change in ${filePath}`);
+      })
+      .catch((err) => {
+        console.error(`Build failed after change in ${filePath}:`, err.message);
+      });
   });
 
-  watcher.on("error", (error: string) =>
-    console.error("Watcher error:", error)
-  );
+  watcher.on("add", (filePath: string) => {
+    console.log(`File ${filePath} has been added.`);
+
+    // Optionally trigger a build if new files are added
+    build()
+      .then(() => {
+        console.log(`Build completed successfully after adding ${filePath}`);
+      })
+      .catch((err) => {
+        console.error(`Build failed after adding ${filePath}:`, err.message);
+      });
+  });
+
+  watcher.on("unlink", (filePath: string) => {
+    console.log(`File ${filePath} has been removed.`);
+
+    // Optionally handle file removal if needed
+  });
+
+  watcher.on("error", (error: Error) => {
+    console.error("Watcher error:", error);
+  });
 
   process.on("SIGINT", () => {
     console.log("Watch mode terminated.");
