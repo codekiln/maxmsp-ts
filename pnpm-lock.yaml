@@ -7,14 +7,7 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@aptrn/maxmsp-ts':
-        specifier: 'link:'
-        version: 'link:'
     devDependencies:
-      '@not251/not251':
-        specifier: ^0.0.2
-        version: 0.0.2
       '@types/node':
         specifier: ^22.7.4
         version: 22.7.4
@@ -26,9 +19,6 @@ importers:
         version: 5.6.2
 
 packages:
-
-  '@not251/not251@0.0.2':
-    resolution: {integrity: sha512-44YixLj7e9gqKbC4nVMgWPp9YXzbKa2YnjZ3+tndiaWhlwNJChsw60Ly3LunfkmQGksAEVQhee8JPkSePObOYQ==}
 
   '@types/node@22.7.4':
     resolution: {integrity: sha512-y+NPi1rFzDs1NdQHHToqeiX2TIS79SWEAw9GYhkkx8bD0ChpfqC+n2j5OXOCpzfojBEBt6DnEnnG9MY0zk1XLg==}
@@ -50,8 +40,6 @@ packages:
     resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
 
 snapshots:
-
-  '@not251/not251@0.0.2': {}
 
   '@types/node@22.7.4':
     dependencies:

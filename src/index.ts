@@ -1,10 +1,7 @@
-import * as not251 from "@not251/not251";
 import { exec, spawn } from "child_process";
 import * as fs from "fs/promises";
 import * as path from "path";
 import chokidar from "chokidar";
-
-let test = new not251.intervalVector([1], 0, 0);
 
 interface Dependency {
   alias: string;
