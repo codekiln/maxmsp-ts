@@ -24,6 +24,11 @@ const [, , command, ...args] = process.argv;
 
 const configFilePath = path.join(process.cwd(), "maxmsp.config.json");
 
+// Function to sanitize library names
+function sanitizeName(name: string): string {
+  return name.replace(/[/.]/g, "-"); // Replace / and . with -
+}
+
 // Function to read or create the config file
 async function readOrCreateConfig(): Promise<Config> {
   try {
@@ -54,8 +59,8 @@ async function copyAndRenameFiles(
   files: string[]
 ) {
   try {
-    // Create the full destination path based on tsconfig output dir and alias path
-    const targetDir = path.join(dest, alias); // Create a directory for alias
+    // Create the full destination path based on tsconfig output dir and relative path
+    const targetDir = dest; // Use dest directly, which includes the relative path
     await fs.mkdir(targetDir, { recursive: true });
 
     for (let file of files) {
@@ -75,14 +80,18 @@ async function copyAndRenameFiles(
 async function replaceInFile(
   filePath: string,
   alias: string,
-  libraryName: string
+  packageName: string,
+  effectivePath: string
 ) {
   try {
     let content = await fs.readFile(filePath, "utf8");
-    // Replace require statements for the specific libraryName
-    const newRequirePath = `require("lib/${alias}/${alias}_index.js")`;
+
+    // Construct the new require path based on alias and effectivePath
+    const newRequirePath = `require("lib/${effectivePath}/${alias}_index.js")`;
+
+    // Replace require statements for the specific packageName
     content = content.replace(
-      new RegExp(`require\\("${libraryName}"\\)`, "g"),
+      new RegExp(`require\\("${packageName}"\\)`, "g"),
       newRequirePath
     );
 
@@ -93,20 +102,6 @@ async function replaceInFile(
   }
 }
 
-// Function to process all JavaScript files in a directory
-async function processDirectory(dir: string, alias: string) {
-  try {
-    const files = await fs.readdir(dir);
-    for (let file of files) {
-      if (path.extname(file) === ".js") {
-        const filePath = path.join(dir, file);
-        await replaceInFile(filePath, alias, path.basename(dir)); // Pass the library name for replacement
-      }
-    }
-  } catch (error) {
-    console.error(`Error processing directory ${dir}:`, error);
-  }
-}
 // Function to get output directory from tsconfig.json
 async function getTsConfigOutputDir(): Promise<string> {
   const tsConfigPath = path.join(process.cwd(), "tsconfig.json");
@@ -137,6 +132,14 @@ async function postBuild() {
     packageName,
     { alias, files, path: relativePath },
   ] of Object.entries(config.dependencies)) {
+    // Use libraryName if alias is empty
+    const effectiveAlias = alias || sanitizeName(packageName); // Sanitize if alias is empty
+
+    // Use sanitized library name if path is empty, otherwise use provided path
+    const effectivePath = relativePath
+      ? relativePath
+      : sanitizeName(packageName);
+
     const sourceDir = path.join(
       process.cwd(),
       "node_modules",
@@ -144,25 +147,67 @@ async function postBuild() {
       "dist"
     );
 
-    // Construct target directory based on tsconfig output dir, output_path, and relativePath
-    const targetDir = path.join(outputDir, relativePath); // e.g., tsconfigOutputDir/lib/ciaone
+    // Construct target directory based on tsconfig output dir and effectivePath
+    const targetDir = path.join(outputDir, effectivePath); // e.g., tsconfigOutputDir/lib/lol
 
     // Copy and rename files for each dependency
-    await copyAndRenameFiles(sourceDir, targetDir, alias, files);
+    await copyAndRenameFiles(sourceDir, targetDir, effectiveAlias, files);
 
-    // Process JavaScript files in the source directory (not copied over)
-    const processedFiles = await fs.readdir(sourceDir);
-
-    for (let file of processedFiles) {
-      if (path.extname(file) === ".js" && !files.includes(file)) {
-        // Only process non-copied files
-        const filePath = path.join(sourceDir, file);
-        await replaceInFile(filePath, alias, packageName); // Pass library name for replacement
-      }
-    }
+    // Replace require statements in all JavaScript files except those in the lib folder
+    await replaceRequireStatements(
+      tsConfigOutputDir,
+      packageName,
+      effectiveAlias,
+      effectivePath
+    );
   }
 
   console.log("Post-build completed successfully.");
+}
+
+// Function to replace require statements in JavaScript files
+async function replaceRequireStatements(
+  baseDir: string,
+  packageName: string,
+  alias: string,
+  effectivePath: string
+) {
+  try {
+    const libFolder = path.join(baseDir, "lib");
+
+    // Read all JavaScript files recursively from baseDir
+    const jsFiles = await getAllJsFiles(baseDir);
+
+    for (const filePath of jsFiles) {
+      if (!filePath.startsWith(libFolder)) {
+        // Skip any file in the lib folder
+        console.log(`Updating require statements in ${filePath}`);
+        await replaceInFile(filePath, alias, packageName, effectivePath); // Pass effectivePath for replacement
+      }
+    }
+  } catch (error) {
+    console.error(`Error replacing require statements:`, error);
+  }
+}
+
+// Function to get all JavaScript files recursively from a directory
+async function getAllJsFiles(dir: string): Promise<string[]> {
+  let results: string[] = [];
+
+  const list = await fs.readdir(dir);
+
+  for (const file of list) {
+    const filePath = path.join(dir, file);
+    const stat = await fs.stat(filePath);
+
+    if (stat && stat.isDirectory()) {
+      results = results.concat(await getAllJsFiles(filePath)); // Recurse into subdirectory
+    } else if (path.extname(file) === ".js") {
+      results.push(filePath); // Add JS file to results
+    }
+  }
+
+  return results;
 }
 
 // Init command logic
