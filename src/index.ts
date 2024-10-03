@@ -1,7 +1,10 @@
+import * as not251 from "@not251/not251";
 import { exec, spawn } from "child_process";
 import * as fs from "fs/promises";
 import * as path from "path";
 import chokidar from "chokidar";
+
+let test = new not251.intervalVector([1], 0, 0);
 
 interface Dependency {
   alias: string;
@@ -54,12 +57,15 @@ async function copyAndRenameFiles(
   files: string[]
 ) {
   try {
-    await fs.mkdir(dest, { recursive: true });
+    // Create the full destination path based on tsconfig output dir and alias path
+    const targetDir = path.join(dest, alias); // Create a directory for alias
+    await fs.mkdir(targetDir, { recursive: true });
 
     for (let file of files) {
       const srcPath = path.join(src, file);
-      const newName = file.replace("index", alias);
-      const destPath = path.join(dest, newName);
+      const newName = `${alias}_${file}`; // Prepend alias to the original file name
+      const destPath = path.join(targetDir, newName); // Use targetDir
+
       await fs.copyFile(srcPath, destPath);
       console.log(`Copied ${srcPath} to ${destPath}`);
     }
@@ -69,13 +75,20 @@ async function copyAndRenameFiles(
 }
 
 // Function to replace require statements in a file
-async function replaceInFile(filePath: string, alias: string) {
+async function replaceInFile(
+  filePath: string,
+  alias: string,
+  libraryName: string
+) {
   try {
     let content = await fs.readFile(filePath, "utf8");
+    // Replace require statements for the specific libraryName
+    const newRequirePath = `require("lib/${alias}/${alias}_index.js")`;
     content = content.replace(
-      /require\("@not251\/not251"\)/g,
-      `require("${alias}.js")`
+      new RegExp(`require\\("${libraryName}"\\)`, "g"),
+      newRequirePath
     );
+
     await fs.writeFile(filePath, content, "utf8");
     console.log(`Updated require statements in ${filePath}`);
   } catch (error) {
@@ -89,35 +102,67 @@ async function processDirectory(dir: string, alias: string) {
     const files = await fs.readdir(dir);
     for (let file of files) {
       if (path.extname(file) === ".js") {
-        await replaceInFile(path.join(dir, file), alias);
+        const filePath = path.join(dir, file);
+        await replaceInFile(filePath, alias, path.basename(dir)); // Pass the library name for replacement
       }
     }
   } catch (error) {
     console.error(`Error processing directory ${dir}:`, error);
   }
 }
+// Function to get output directory from tsconfig.json
+async function getTsConfigOutputDir(): Promise<string> {
+  const tsConfigPath = path.join(process.cwd(), "tsconfig.json");
+
+  try {
+    const tsConfigContent = await fs.readFile(tsConfigPath, "utf-8");
+    const tsConfig = JSON.parse(tsConfigContent);
+
+    // Return outDir if it exists, otherwise return a default value
+    return tsConfig.compilerOptions?.outDir || "dist"; // Default to "dist" if not specified
+  } catch (error) {
+    console.error(`Error reading tsconfig.json:`, error);
+    return "dist"; // Fallback output directory
+  }
+}
 
 // Post-build command logic
 async function postBuild() {
   const config = await readOrCreateConfig();
-  const outputDir = path.join(process.cwd(), config.output_path);
 
-  for (const [packageName, { alias, files }] of Object.entries(
-    config.dependencies
-  )) {
+  // Get the output directory from tsconfig.json
+  const tsConfigOutputDir = await getTsConfigOutputDir();
+
+  // Define output directory based on config
+  const outputDir = path.join(tsConfigOutputDir, config.output_path); // Full path for output
+
+  for (const [
+    packageName,
+    { alias, files, path: relativePath },
+  ] of Object.entries(config.dependencies)) {
     const sourceDir = path.join(
       process.cwd(),
       "node_modules",
       packageName,
       "dist"
     );
-    const targetDir = path.join(outputDir);
+
+    // Construct target directory based on tsconfig output dir, output_path, and relativePath
+    const targetDir = path.join(outputDir, relativePath); // e.g., tsconfigOutputDir/lib/ciaone
 
     // Copy and rename files for each dependency
     await copyAndRenameFiles(sourceDir, targetDir, alias, files);
 
-    // Process JavaScript files in the target directory
-    await processDirectory(targetDir, alias);
+    // Process JavaScript files in the source directory (not copied over)
+    const processedFiles = await fs.readdir(sourceDir);
+
+    for (let file of processedFiles) {
+      if (path.extname(file) === ".js" && !files.includes(file)) {
+        // Only process non-copied files
+        const filePath = path.join(sourceDir, file);
+        await replaceInFile(filePath, alias, packageName); // Pass library name for replacement
+      }
+    }
   }
 
   console.log("Post-build completed successfully.");
