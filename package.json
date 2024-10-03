@@ -1,22 +1,32 @@
 {
   "name": "@aptrn/maxmsp-ts",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "CLI tool for building typescript projects and dependencies for usage in MaxMsp js object",
   "main": "index.js",
   "type": "module",
   "bin": {
     "maxmsp": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "release": "pnpm run build && changeset publish"
   },
   "keywords": [
     "maxmsp"
   ],
   "author": "aptrn",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aptrn/maxmsp-ts.git"
+  },
   "license": "MIT",
   "devDependencies": {
+    "@changesets/cli": "^2.27.9",
     "@types/node": "^22.7.4",
     "typescript": "^5.6.2"
   },
