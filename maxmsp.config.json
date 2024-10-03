@@ -1,0 +1,10 @@
+{
+  "output_path": "lib",
+  "dependencies": {
+    "packageName": {
+      "alias": "packageAlias",
+      "files": ["index.js"],
+      "path": ""
+    }
+  }
+}
