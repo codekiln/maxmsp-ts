@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "CLI tool for building typescript projects and dependencies for usage in MaxMsp js object",
   "main": "index.js",
+  "type": "module",
   "bin": {
     "maxmsp": "dist/index.js"
   },
@@ -16,6 +17,7 @@
   "author": "aptrn",
   "license": "MIT",
   "devDependencies": {
+    "@not251/not251": "^0.0.2",
     "@types/node": "^22.7.4",
     "chokidar": "^4.0.1",
     "typescript": "^5.6.2"

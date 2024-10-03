@@ -16,7 +16,7 @@ interface Config {
 
 interface AddOptions {
   alias?: string;
-  files?: string[];
+  files?: string;
   path?: string;
 }
 
@@ -128,13 +128,49 @@ async function init() {
   await readOrCreateConfig();
 }
 
+// Function to check if a library is installed
+async function isLibraryInstalled(libraryName: string): Promise<boolean> {
+  const packageJsonPath = path.join(process.cwd(), "package.json");
+
+  try {
+    const packageJsonContent = await fs.readFile(packageJsonPath, "utf-8");
+    const packageJson = JSON.parse(packageJsonContent);
+
+    // Check both dependencies and devDependencies
+    return (
+      (packageJson.dependencies && packageJson.dependencies[libraryName]) ||
+      (packageJson.devDependencies && packageJson.devDependencies[libraryName])
+    );
+  } catch (error) {
+    console.error(`Error reading package.json:`, error);
+    return false;
+  }
+}
+
 // Add command logic
 async function add(libraryName: string, options: AddOptions) {
   const config = await readOrCreateConfig();
 
+  // Check if the library is installed
+  const isInstalled = await isLibraryInstalled(libraryName);
+  if (!isInstalled) {
+    console.error(
+      `${libraryName} is not installed. Please install it with pnpm i -D ${libraryName}`
+    );
+    process.exit(1);
+  }
+
   // Default values for the new dependency
   const alias = options.alias || libraryName;
-  const files = options.files || ["index.js"];
+
+  // Process the files option if provided
+  let files: string[] = [];
+  if (typeof options.files === "string") {
+    files = options.files.split(",").map((file) => file.trim());
+  } else {
+    files = ["index.js"];
+  }
+
   const pathValue = options.path || "";
 
   // Add dependency
@@ -249,7 +285,7 @@ async function dev() {
 
       args.forEach((arg, index) => {
         if (arg === "--alias") optionsToAdd.alias = args[index + 1];
-        if (arg === "--files") optionsToAdd.files = JSON.parse(args[index + 1]);
+        if (arg === "--files") optionsToAdd.files = args[index + 1];
         if (arg === "--path") optionsToAdd.path = args[index + 1];
       });
 
