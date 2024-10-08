@@ -1,22 +1,50 @@
 # maxmsp-ts
 
-CLI tool for building typescript projects and dependencies for usage in MaxMsp js object
+CLI tool for building TypeScript projects and dependencies for usage in MaxMsp js object
 
-## How to use
+## How to Use
 
-You probably want to check out [the example](https://github.com/aptrn/maxmsp-ts-example.git)
+For practical applications, you might want to check out:
 
-This is the repo for the CLI used in the example project called "maxmsp".
+- [How to use TypeScript in Max](https://github.com/aptrn/maxmsp-ts-example.git)
+- [Write your own TypeScript library](https://github.com/aptrn/maxmsp-ts-library-template)
 
-The package is hosted on [npm](https://www.npmjs.com/package/@aptrn/maxmsp-ts), you can install it with npm install -D @aptrn/maxmsp-ts
+This repository contains the CLI tool called "maxmsp" used in those projects.
 
-## Available commands
+## Installation
 
- - build
- - dev
- - add
- - rm
+The package is hosted on [npm](https://www.npmjs.com/package/@aptrn/maxmsp-ts). You can install it with:
+
+```bash
+npm install -D @aptrn/maxmsp-ts
+```
+
+## Available Commands
+
+### `build`
+
+Builds your project, copying over files and fixing require paths.
+
+### `dev`
+
+Builds any time a file in `src` changes.
+
+### `rm <package-name>`
+
+Removes the package from the maxmsp.config.json file.
+
+### `add <package-name> [options]`
+
+Adds a package to the maxmsp.config.json file.
+
+Options:
+
+- `--alias`: Optional. Sets the prefix for the copied files. Default is the package name.
+- `--path`: Optional. Sets the path to the package. Default is the package name.
+- `--files`: Optional. Sets the files to copy. Default is `index.js`.
 
 ## Todo
 
-- [ ] Add "rename" renaming project and folder
+- [ ] Add "rename" command for renaming project and folder
+- [ ] Find a way to auto-sanitize Max Project file structure
+- [ ] Add a function to create patcher files from JSON, possibly "ui" or "main"
