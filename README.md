@@ -48,3 +48,6 @@ Options:
 - [ ] Add "rename" command for renaming project and folder
 - [ ] Find a way to auto-sanitize Max Project file structure
 - [ ] Add a function to create patcher files from JSON, possibly "ui" or "main"
+- [ ] Experiment with [maxpy](https://github.com/Barnard-PL-Labs/MaxPy) to build max patches programmatically
+- [ ] Experiment with [are-you-es5](https://www.npmjs.com/package/are-you-es5) to check dependencies compatibility
+- [ ] Experiment with [babel](https://babeljs.io/) to transpile dependencies
